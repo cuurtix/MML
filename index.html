@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trading Simulator XAUUSD</title>
+  <style>
+    :root {
+      --bg: #efefef;
+      --panel: #f8f8f8;
+      --panel-2: #ffffff;
+      --line: #101010;
+      --soft-line: #7b7b7b;
+      --text: #111;
+      --muted: #555;
+      --green: #12a150;
+      --red: #111;
+      --shadow: 0 10px 30px rgba(0,0,0,.08);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #dcdcdc; color: var(--text); }
+    button, input, select { font: inherit; }
+    button {
+      transition: transform 0.06s ease, box-shadow 0.12s ease, background 0.12s ease, color 0.12s ease;
+      box-shadow: 0 3px 0 #111;
+    }
+    button:hover {
+      transform: translateY(-1px);
+    }
+    button:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #111;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .app {
+      min-height: 100vh;
+      padding: 18px;
+      background: radial-gradient(circle at top, #f2f2f2, #d6d6d6);
+    }
+
+    .shell {
+      max-width: 1480px;
+      margin: 0 auto;
+      background: linear-gradient(180deg, #f7f7f7, #ececec);
+      border: 2px solid #111;
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 320px 1fr 300px;
+      gap: 12px;
+      align-items: center;
+      padding: 16px 18px 12px;
+      border-bottom: 2px solid #111;
+      background: #f4f4f4;
+    }
+
+    .leverage-box {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      padding: 8px;
+      border: 2px solid #111;
+      border-radius: 14px;
+      background: white;
+      min-height: 64px;
+    }
+
+    .lev-chip {
+      min-width: 62px;
+      padding: 9px 10px;
+      border-radius: 12px;
+      border: 2px solid #111;
+      background: #fff;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .lev-chip.active,
+    .seg-btn.active,
+    .side-btn.buy.active,
+    .side-btn.sell.active,
+    .mini-btn.active {
+      background: #111;
+      color: #fff;
+    }
+
+    .portfolio-head {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .portfolio-head span.label {
+      font-size: 18px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+    }
+
+    .clock {
+      justify-self: end;
+      border: 2px solid #111;
+      border-radius: 14px;
+      background: white;
+      padding: 12px 14px;
+      min-width: 250px;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .main {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      min-height: 760px;
+    }
+
+    .chart-side {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      border-right: 2px solid #111;
+      background: #f5f5f5;
+    }
+
+    .instrument-bar {
+      display: grid;
+      grid-template-columns: 200px 1fr 270px;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 18px;
+      border-bottom: 2px solid #111;
+      background: #fbfbfb;
+    }
+
+    .instrument-card,
+    .market-stats {
+      border: 2px solid #111;
+      border-radius: 14px;
+      background: white;
+      padding: 12px 14px;
+    }
+
+    .symbol {
+      font-size: 30px;
+      font-weight: 900;
+      letter-spacing: .03em;
+    }
+
+    .spot-price {
+      font-size: 38px;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .subprice {
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    .chart-wrap {
+      position: relative;
+      padding: 14px 18px 10px;
+      background: linear-gradient(180deg, #ffffff, #f1f1f1);
+    }
+
+    canvas#chart {
+      width: 100%;
+      height: 460px;
+      display: block;
+      background:
+        linear-gradient(180deg, rgba(0,0,0,.02), rgba(0,0,0,.01)),
+        repeating-linear-gradient(to bottom, transparent 0 76px, rgba(0,0,0,.06) 76px 77px),
+        repeating-linear-gradient(to right, transparent 0 94px, rgba(0,0,0,.05) 94px 95px);
+      border: 2px solid #111;
+      border-radius: 18px;
+    }
+
+    .chart-overlay {
+      position: absolute;
+      top: 28px;
+      left: 34px;
+      right: 34px;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none;
+      font-size: 12px;
+      color: #666;
+      font-weight: 700;
+    }
+
+    .controls-strip {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+      padding: 12px 18px 16px;
+      border-top: 2px solid #111;
+      background: #f8f8f8;
+    }
+
+    .stat-card {
+      border: 2px solid #111;
+      border-radius: 14px;
+      background: white;
+      padding: 10px 12px;
+      min-height: 88px;
+    }
+
+    .stat-label { color: var(--muted); font-size: 13px; text-transform: uppercase; font-weight: 700; }
+    .stat-value { margin-top: 8px; font-size: 22px; font-weight: 800; }
+    .stat-sub { margin-top: 4px; font-size: 12px; color: #666; }
+
+    .order-side {
+      background: linear-gradient(180deg, #f5f5f5, #ececec);
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+    }
+
+    .order-header {
+      padding: 16px 16px 8px;
+      border-bottom: 2px solid #111;
+      background: #f8f8f8;
+    }
+
+    .order-header h2 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    .order-price {
+      margin-top: 8px;
+      font-size: 36px;
+      font-weight: 900;
+    }
+
+    .direction-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding: 12px 16px;
+      border-bottom: 2px solid #111;
+      background: #f1f1f1;
+    }
+
+    .side-btn {
+      padding: 14px;
+      border-radius: 16px;
+      border: 2px solid #111;
+      cursor: pointer;
+      font-size: 18px;
+      font-weight: 900;
+      background: #fff;
+    }
+
+    .side-btn.buy { color: var(--green); }
+    .side-btn.sell { color: #111; }
+
+    .order-form {
+      padding: 14px 16px;
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .field {
+      border: 2px solid #111;
+      border-radius: 16px;
+      background: white;
+      padding: 10px 12px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 18px;
+      font-weight: 800;
+      color: #111;
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .mini-btn {
+      border: 2px solid #111;
+      background: #fff;
+      border-radius: 12px;
+      padding: 8px 10px;
+      cursor: pointer;
+      font-weight: 900;
+    }
+
+    .seg-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .seg-btn {
+      flex: 1;
+      min-width: 74px;
+      border: 2px solid #111;
+      background: white;
+      border-radius: 12px;
+      padding: 10px 8px;
+      cursor: pointer;
+      font-weight: 800;
+    }
+
+    .order-preview {
+      border: 2px solid #111;
+      border-radius: 16px;
+      background: #fff;
+      padding: 12px;
+      display: grid;
+      gap: 7px;
+    }
+
+    .preview-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 14px;
+    }
+
+    .cta-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .primary-btn,
+    .secondary-btn,
+    .danger-btn {
+      border: 2px solid #111;
+      border-radius: 16px;
+      padding: 14px;
+      cursor: pointer;
+      font-weight: 900;
+      background: white;
+    }
+
+    .primary-btn { background: #111; color: #fff; }
+    .danger-btn { background: #fff2f2; }
+    .primary-btn:hover,
+    .secondary-btn:hover,
+    .danger-btn:hover,
+    .side-btn:hover,
+    .seg-btn:hover,
+    .lev-chip:hover,
+    .mini-btn:hover {
+      filter: brightness(0.98);
+    }
+
+    .funds-panel {
+      padding: 12px 16px 16px;
+      border-top: 2px solid #111;
+      background: #f8f8f8;
+      display: grid;
+      gap: 10px;
+    }
+
+    .inline-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+
+    .positions {
+      border-top: 2px solid #111;
+      padding: 14px 18px 18px;
+      background: #f3f3f3;
+    }
+
+    .positions-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      gap: 10px;
+    }
+
+    .positions-header h3 {
+      margin: 0;
+      font-size: 26px;
+    }
+
+    .position-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .position-card {
+      border: 2px solid #111;
+      border-radius: 16px;
+      background: #fff;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 1.4fr 1fr 1fr 1fr 150px;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .position-main { font-weight: 800; }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border: 2px solid #111;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      background: #fff;
+    }
+
+    .pnl-pos { color: var(--green); }
+    .pnl-neg { color: #af1f1f; }
+    .muted { color: var(--muted); }
+
+    .empty {
+      border: 2px dashed #777;
+      border-radius: 16px;
+      padding: 18px;
+      background: rgba(255,255,255,.5);
+      color: #666;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      background: #111;
+      color: #fff;
+      padding: 12px 14px;
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(20px);
+      transition: .25s ease;
+      max-width: 340px;
+      z-index: 20;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 1200px) {
+      .main { grid-template-columns: 1fr; }
+      .chart-side { border-right: none; border-bottom: 2px solid #111; }
+      .topbar, .instrument-bar { grid-template-columns: 1fr; }
+      .position-card { grid-template-columns: 1fr; }
+      .controls-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="shell">
+      <div class="topbar">
+        <div class="leverage-box" id="leverageChips"></div>
+        <div class="portfolio-head">
+          <span class="label">Somme total</span>
+          <span id="topPortfolioValue">10 000 $</span>
+        </div>
+        <div class="clock" id="clockBox">--:--:--</div>
+      </div>
+
+      <div class="main">
+        <section class="chart-side">
+          <div class="instrument-bar">
+            <div class="instrument-card">
+              <div class="symbol">XAUUSD</div>
+              <div class="muted" id="marketStateLabel">Marché : Range</div>
+            </div>
+            <div>
+              <div class="spot-price" id="spotPriceMain">$ 4569.00</div>
+              <div class="subprice" id="spotMeta">Bougie locale 3s • Heure locale</div>
+            </div>
+            <div class="market-stats">
+              <div><strong>Capitalisation boursière :</strong> <span id="marketCapText">28.335 Bn</span></div>
+              <div style="margin-top:6px;"><strong>Volume total :</strong> <span id="volumeText">10.84 M</span></div>
+              <div style="margin-top:6px;"><strong>XAUUSD :</strong> donnée simulée cohérente</div>
+            </div>
+          </div>
+
+          <div class="chart-wrap">
+            <canvas id="chart" width="1024" height="460"></canvas>
+            <div class="chart-overlay">
+              <div id="chartLeftLabel">Range local</div>
+              <div id="chartRightLabel">Prix temps réel</div>
+            </div>
+          </div>
+
+          <div class="controls-strip">
+            <div class="stat-card">
+              <div class="stat-label">Balance</div>
+              <div class="stat-value" id="balanceValue">$ 10 000.00</div>
+              <div class="stat-sub">Cash réalisé</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Equity</div>
+              <div class="stat-value" id="equityValue">$ 10 000.00</div>
+              <div class="stat-sub">PnL inclus</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Marge utilisée</div>
+              <div class="stat-value" id="usedMarginValue">$ 0.00</div>
+              <div class="stat-sub">Bloquée</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Fonds libres</div>
+              <div class="stat-value" id="freeFundsValue">$ 10 000.00</div>
+              <div class="stat-sub">Retirable</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">PnL flottant</div>
+              <div class="stat-value" id="floatingPnlValue">$ 0.00</div>
+              <div class="stat-sub">Temps réel</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Liquidité active</div>
+              <div class="stat-value" id="liquidityValue">$ 5.00 M</div>
+              <div class="stat-sub">Impact ordres</div>
+            </div>
+          </div>
+
+          <div class="positions">
+            <div class="positions-header">
+              <h3>Vos positions :</h3>
+              <div class="muted">1 lot = 100 onces d'or</div>
+            </div>
+            <div class="position-list" id="positionList"></div>
+          </div>
+        </section>
+
+        <aside class="order-side">
+          <div class="order-header">
+            <h2>Prix</h2>
+            <div class="order-price" id="orderPriceText">$ 4569.00</div>
+            <div class="muted" id="spreadText">Spread simulé : 0.40 $</div>
+          </div>
+
+          <div class="direction-row">
+            <button class="side-btn buy active" id="buyBtn">ACHETER</button>
+            <button class="side-btn sell" id="sellBtn">VENDRE</button>
+          </div>
+
+          <div class="order-form">
+            <div class="field">
+              <label>Direction</label>
+              <div class="seg-row">
+                <button class="seg-btn active" data-direction="buy">Long</button>
+                <button class="seg-btn" data-direction="sell">Short</button>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Lot</label>
+              <div class="field-row">
+                <input type="number" id="lotsInput" value="0.10" min="0.01" step="0.01" />
+                <button class="mini-btn" id="maxLotBtn">MAX</button>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Stop Loss</label>
+              <input type="number" id="slInput" step="0.01" placeholder="Facultatif" />
+            </div>
+
+            <div class="field">
+              <label>Take Profit</label>
+              <input type="number" id="tpInput" step="0.01" placeholder="Facultatif" />
+            </div>
+
+            <div class="order-preview" id="previewBox">
+              <strong>APERCU DE LA COMMANDE</strong>
+              <div class="preview-row"><span>Notionnel</span><strong id="previewNotional">$ 45 690.00</strong></div>
+              <div class="preview-row"><span>Marge requise</span><strong id="previewMargin">$ 456.90</strong></div>
+              <div class="preview-row"><span>Impact estimé</span><strong id="previewImpact">+0.28 $</strong></div>
+              <div class="preview-row"><span>Valeur / 1$ de move</span><strong id="previewDollarMove">$ 10.00</strong></div>
+              <div class="preview-row"><span>Prix d'exécution estimé</span><strong id="previewExecution">$ 4569.28</strong></div>
+            </div>
+
+            <div class="cta-row">
+              <button class="primary-btn" id="openPositionBtn">OUVRIR LA POSITION</button>
+              <button class="secondary-btn" id="closeAllBtn">FERMER TOUT</button>
+            </div>
+          </div>
+
+          <div class="funds-panel">
+            <div class="field">
+              <label>Montant dépôt / retrait</label>
+              <input type="number" id="fundsInput" value="1000" step="100" min="0" />
+            </div>
+            <div class="inline-actions">
+              <button class="secondary-btn" id="depositBtn">DEPOSER</button>
+              <button class="secondary-btn" id="withdrawBtn">RETIRER</button>
+              <button class="danger-btn" id="resetBtn">RESET</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const CONTRACT_SIZE_OZ = 100;
+    const CANDLE_INTERVAL_MS = 3000;
+    const INITIAL_BALANCE = 10000;
+    const MAX_VISIBLE_CANDLES = 54;
+    const LEVERAGES = [10, 50, 100, 500];
+    const START_PRICE = 4569;
+    const PRICE_DECIMALS = 2;
+
+    const state = {
+      symbol: 'XAUUSD',
+      direction: 'buy',
+      selectedLeverage: 100,
+      balance: INITIAL_BALANCE,
+      equity: INITIAL_BALANCE,
+      usedMargin: 0,
+      freeFunds: INITIAL_BALANCE,
+      floatingPnl: 0,
+      marketPrice: START_PRICE,
+      currentCandle: null,
+      candles: [],
+      positions: [],
+      nextPositionId: 1,
+      marketPhase: 'range',
+      phaseTicksLeft: 25,
+      liquidityUSD: 5_000_000,
+      displayedMarketCap: 28.335e9,
+      displayedVolume: 10.84e6,
+      pendingImpactBias: 0,
+      spread: 0.40,
+      lastTickTime: Date.now(),
+      localSessionBias: 0,
+      referencePrice: START_PRICE,
+      toastTimer: null,
+    };
+
+    const els = {
+      chart: document.getElementById('chart'),
+      topPortfolioValue: document.getElementById('topPortfolioValue'),
+      clockBox: document.getElementById('clockBox'),
+      marketStateLabel: document.getElementById('marketStateLabel'),
+      spotPriceMain: document.getElementById('spotPriceMain'),
+      spotMeta: document.getElementById('spotMeta'),
+      marketCapText: document.getElementById('marketCapText'),
+      volumeText: document.getElementById('volumeText'),
+      balanceValue: document.getElementById('balanceValue'),
+      equityValue: document.getElementById('equityValue'),
+      usedMarginValue: document.getElementById('usedMarginValue'),
+      freeFundsValue: document.getElementById('freeFundsValue'),
+      floatingPnlValue: document.getElementById('floatingPnlValue'),
+      liquidityValue: document.getElementById('liquidityValue'),
+      orderPriceText: document.getElementById('orderPriceText'),
+      spreadText: document.getElementById('spreadText'),
+      leverageChips: document.getElementById('leverageChips'),
+      buyBtn: document.getElementById('buyBtn'),
+      sellBtn: document.getElementById('sellBtn'),
+      lotsInput: document.getElementById('lotsInput'),
+      slInput: document.getElementById('slInput'),
+      tpInput: document.getElementById('tpInput'),
+      maxLotBtn: document.getElementById('maxLotBtn'),
+      previewNotional: document.getElementById('previewNotional'),
+      previewMargin: document.getElementById('previewMargin'),
+      previewImpact: document.getElementById('previewImpact'),
+      previewDollarMove: document.getElementById('previewDollarMove'),
+      previewExecution: document.getElementById('previewExecution'),
+      openPositionBtn: document.getElementById('openPositionBtn'),
+      closeAllBtn: document.getElementById('closeAllBtn'),
+      depositBtn: document.getElementById('depositBtn'),
+      withdrawBtn: document.getElementById('withdrawBtn'),
+      resetBtn: document.getElementById('resetBtn'),
+      fundsInput: document.getElementById('fundsInput'),
+      positionList: document.getElementById('positionList'),
+      toast: document.getElementById('toast'),
+      chartLeftLabel: document.getElementById('chartLeftLabel'),
+      chartRightLabel: document.getElementById('chartRightLabel'),
+    };
+
+    const ctx = els.chart.getContext('2d');
+
+    function fmtPrice(v) { return `$ ${Number(v).toFixed(PRICE_DECIMALS)}`; }
+    function fmtMoney(v) {
+      const sign = v < 0 ? '-$ ' : '$ ';
+      return `${sign}${Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    function fmtCompact(v) {
+      const abs = Math.abs(v);
+      if (abs >= 1e9) return `${(v/1e9).toFixed(3)} Bn`;
+      if (abs >= 1e6) return `${(v/1e6).toFixed(2)} M`;
+      if (abs >= 1e3) return `${(v/1e3).toFixed(2)} K`;
+      return v.toFixed(2);
+    }
+    function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+    function rand(min, max) { return Math.random() * (max - min) + min; }
+    function choose(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+    function showToast(msg) {
+      clearTimeout(state.toastTimer);
+      els.toast.textContent = msg;
+      els.toast.classList.add('show');
+      state.toastTimer = setTimeout(() => els.toast.classList.remove('show'), 2400);
+    }
+
+    function gaussian() {
+      let u = 0, v = 0;
+      while (u === 0) u = Math.random();
+      while (v === 0) v = Math.random();
+      return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+    }
+
+    function getSessionBias(hour) {
+      if (hour >= 7 && hour <= 11) return { volatility: 1.15, liquidity: 1.15, label: 'Session Europe' };
+      if (hour >= 13 && hour <= 17) return { volatility: 1.28, liquidity: 1.25, label: 'Overlap Europe/US' };
+      if (hour >= 18 && hour <= 21) return { volatility: 1.1, liquidity: 1.08, label: 'Session US' };
+      if (hour >= 0 && hour <= 5) return { volatility: 0.7, liquidity: 0.72, label: 'Session calme' };
+      return { volatility: 0.92, liquidity: 0.95, label: 'Session neutre' };
+    }
+
+    function marketPhaseParams() {
+      const map = {
+        range:      { drift: 0.00, vol: 0.60, reversion: 0.25, wick: 1.2, trendBias: 0, label: 'Range' },
+        uptrend:    { drift: 0.55, vol: 0.75, reversion: 0.12, wick: 0.9, trendBias: 1, label: 'Tendance haussière' },
+        downtrend:  { drift: -0.55, vol: 0.75, reversion: 0.12, wick: 0.9, trendBias: -1, label: 'Tendance baissière' },
+        breakoutUp: { drift: 1.25, vol: 1.30, reversion: 0.03, wick: 0.8, trendBias: 1, label: 'Breakout haussier' },
+        breakoutDn: { drift: -1.25, vol: 1.30, reversion: 0.03, wick: 0.8, trendBias: -1, label: 'Breakout baissier' },
+        panic:      { drift: -1.8, vol: 2.2, reversion: 0.05, wick: 1.7, trendBias: -1, label: 'Panic sell' },
+        squeeze:    { drift: 1.8, vol: 2.2, reversion: 0.05, wick: 1.7, trendBias: 1, label: 'Short squeeze' },
+      };
+      return map[state.marketPhase];
+    }
+
+    function maybeRotateMarketPhase() {
+      state.phaseTicksLeft -= 1;
+      if (state.phaseTicksLeft > 0) return;
+
+      const current = state.marketPhase;
+      const transitions = {
+        range: ['range', 'range', 'uptrend', 'downtrend', 'breakoutUp', 'breakoutDn'],
+        uptrend: ['uptrend', 'uptrend', 'range', 'breakoutUp', 'squeeze'],
+        downtrend: ['downtrend', 'downtrend', 'range', 'breakoutDn', 'panic'],
+        breakoutUp: ['uptrend', 'range', 'squeeze'],
+        breakoutDn: ['downtrend', 'range', 'panic'],
+        panic: ['range', 'downtrend'],
+        squeeze: ['range', 'uptrend'],
+      };
+      state.marketPhase = choose(transitions[current]);
+      state.phaseTicksLeft = Math.floor(rand(14, 36));
+    }
+
+    function computeOrderMetrics(direction = state.direction) {
+      const lots = clamp(Number(els.lotsInput.value || 0), 0.01, 1000);
+      const leverage = Number(state.selectedLeverage || 100);
+      const baseExec = state.marketPrice + (direction === 'buy' ? state.spread / 2 : -state.spread / 2);
+      const notional = lots * CONTRACT_SIZE_OZ * baseExec;
+      const margin = notional / leverage;
+      const impactRatio = notional / Math.max(state.liquidityUSD, 1);
+      const impactAbs = Math.sqrt(Math.max(impactRatio, 0)) * state.marketPrice * 0.0012;
+      const signedImpact = direction === 'buy' ? impactAbs : -impactAbs;
+      const execution = baseExec + signedImpact;
+      const dollarPer1Move = lots * CONTRACT_SIZE_OZ;
+
+      return {
+        lots,
+        leverage,
+        notional,
+        margin,
+        impactAbs,
+        signedImpact,
+        execution,
+        dollarPer1Move
+      };
+    }
+
+    function getMaxLots() {
+      const leverage = Number(state.selectedLeverage || 100);
+      const safeFunds = Math.max(state.freeFunds * 0.8, 0);
+      const lots = (safeFunds * leverage) / (CONTRACT_SIZE_OZ * Math.max(state.marketPrice, 1));
+      return clamp(lots, 0.01, 9999);
+    }
+
+    function updatePreview() {
+      const m = computeOrderMetrics();
+      els.previewNotional.textContent = fmtMoney(m.notional);
+      els.previewMargin.textContent = fmtMoney(m.margin);
+      els.previewImpact.textContent = `${m.signedImpact >= 0 ? '+' : ''}${m.signedImpact.toFixed(2)} $`;
+      els.previewDollarMove.textContent = fmtMoney(m.dollarPer1Move);
+      els.previewExecution.textContent = fmtPrice(m.execution);
+    }
+
+    function updateClock() {
+      const now = new Date();
+      const session = getSessionBias(now.getHours());
+      els.clockBox.textContent = `${now.toLocaleDateString('fr-FR')} • ${now.toLocaleTimeString('fr-FR')}`;
+      els.spotMeta.textContent = `Nouvelle bougie toutes les 3s • ${session.label} • Heure locale`;
+      state.localSessionBias = session.volatility;
+      state.liquidityUSD = 5_000_000 * session.liquidity;
+    }
+
+    function buildInitialCandles() {
+      state.candles = [];
+      let price = START_PRICE;
+      for (let i = 0; i < MAX_VISIBLE_CANDLES; i++) {
+        const drift = gaussian() * 0.8;
+        const open = price;
+        const close = Math.max(50, open + drift);
+        const high = Math.max(open, close) + rand(0.15, 1.3);
+        const low = Math.min(open, close) - rand(0.15, 1.3);
+        state.candles.push({ open, high, low, close, time: Date.now() - (MAX_VISIBLE_CANDLES - i) * CANDLE_INTERVAL_MS });
+        price = close;
+      }
+      state.marketPrice = state.candles[state.candles.length - 1].close;
+      state.currentCandle = {
+        open: state.marketPrice,
+        high: state.marketPrice,
+        low: state.marketPrice,
+        close: state.marketPrice,
+        time: Date.now(),
+      };
+      state.referencePrice = state.marketPrice;
+    }
+
+    function getLiquidityTargets() {
+      const recent = state.candles.slice(-18);
+      const highs = recent.map(c => c.high);
+      const lows = recent.map(c => c.low);
+      return {
+        highPool: Math.max(...highs),
+        lowPool: Math.min(...lows),
+        mean: recent.reduce((acc, c) => acc + c.close, 0) / Math.max(recent.length, 1),
+      };
+    }
+
+    function updateMarketMeta() {
+      const annualizedFactor = clamp(state.marketPrice / START_PRICE, 0.6, 1.8);
+      state.displayedMarketCap = 28.335e9 * annualizedFactor;
+      const recentRange = Math.abs(state.currentCandle.high - state.currentCandle.low) + 1;
+      state.displayedVolume = 10.84e6 * (0.92 + recentRange / 18 + state.localSessionBias * 0.08);
+    }
+
+    function stepPrice() {
+      maybeRotateMarketPhase();
+      const params = marketPhaseParams();
+      const targets = getLiquidityTargets();
+      const open = state.currentCandle.open;
+      const price = state.currentCandle.close;
+
+      const distanceFromMean = price - targets.mean;
+      const reversion = -distanceFromMean * params.reversion * 0.08;
+      const baseDrift = params.drift * state.localSessionBias;
+      const noise = gaussian() * params.vol * state.localSessionBias;
+
+      let liquidityPull = 0;
+      const distHigh = Math.abs(targets.highPool - price);
+      const distLow = Math.abs(price - targets.lowPool);
+      if (distHigh < 8 && params.trendBias >= 0) liquidityPull += (targets.highPool - price) * 0.06;
+      if (distLow < 8 && params.trendBias <= 0) liquidityPull += (targets.lowPool - price) * 0.06;
+
+      const impactDecay = state.pendingImpactBias * 0.35;
+      state.pendingImpactBias *= 0.65;
+
+      let delta = baseDrift + noise + reversion + liquidityPull + impactDecay;
+      delta = clamp(delta, -12, 12);
+
+      const close = Math.max(50, price + delta);
+      const wickUp = Math.abs(gaussian()) * params.wick * (0.55 + state.localSessionBias * 0.25);
+      const wickDn = Math.abs(gaussian()) * params.wick * (0.55 + state.localSessionBias * 0.25);
+      state.currentCandle.close = close;
+      state.currentCandle.high = Math.max(state.currentCandle.high, open, close + wickUp * 0.45);
+      state.currentCandle.low = Math.min(state.currentCandle.low, open, close - wickDn * 0.45);
+      state.marketPrice = close;
+      state.referencePrice += (close - state.referencePrice) * 0.02;
+      updateMarketMeta();
+    }
+
+    function closeCurrentCandleAndOpenNext() {
+      state.currentCandle.high = Math.max(state.currentCandle.high, state.currentCandle.open, state.currentCandle.close);
+      state.currentCandle.low = Math.min(state.currentCandle.low, state.currentCandle.open, state.currentCandle.close);
+      state.candles.push({ ...state.currentCandle });
+      if (state.candles.length > MAX_VISIBLE_CANDLES) state.candles.shift();
+      state.currentCandle = {
+        open: state.marketPrice,
+        high: state.marketPrice,
+        low: state.marketPrice,
+        close: state.marketPrice,
+        time: Date.now(),
+      };
+    }
+
+    function applyPositionStops() {
+      const remaining = [];
+      for (const pos of state.positions) {
+        const hitSL = pos.stopLoss != null && ((pos.side === 'buy' && state.marketPrice <= pos.stopLoss) || (pos.side === 'sell' && state.marketPrice >= pos.stopLoss));
+        const hitTP = pos.takeProfit != null && ((pos.side === 'buy' && state.marketPrice >= pos.takeProfit) || (pos.side === 'sell' && state.marketPrice <= pos.takeProfit));
+        if (hitSL || hitTP) {
+          closePosition(pos.id, hitSL ? 'Stop loss touché' : 'Take profit touché', false);
+        } else {
+          remaining.push(pos);
+        }
+      }
+      state.positions = remaining;
+    }
+
+    function recalcAccount() {
+      let floating = 0;
+      let margin = 0;
+      for (const pos of state.positions) {
+        const pnl = pos.side === 'buy'
+          ? (state.marketPrice - pos.entryPrice) * CONTRACT_SIZE_OZ * pos.lots
+          : (pos.entryPrice - state.marketPrice) * CONTRACT_SIZE_OZ * pos.lots;
+        pos.floatingPnl = pnl;
+        floating += pnl;
+        margin += pos.marginUsed;
+      }
+      state.floatingPnl = floating;
+      state.usedMargin = margin;
+      state.equity = state.balance + floating;
+      state.freeFunds = Math.max(state.equity - state.usedMargin, 0);
+    }
+
+    function openPosition() {
+      const m = computeOrderMetrics();
+      if (!Number.isFinite(m.lots) || m.lots <= 0) return showToast('Lot invalide.');
+      if (m.margin > state.freeFunds) return showToast('Fonds libres insuffisants pour cette position.');
+
+      const stopLoss = els.slInput.value ? Number(els.slInput.value) : null;
+      const takeProfit = els.tpInput.value ? Number(els.tpInput.value) : null;
+      if (stopLoss != null && state.direction === 'buy' && stopLoss >= m.execution) return showToast('Le stop loss d\'un achat doit être sous le prix d\'entrée.');
+      if (stopLoss != null && state.direction === 'sell' && stopLoss <= m.execution) return showToast('Le stop loss d\'une vente doit être au-dessus du prix d\'entrée.');
+      if (takeProfit != null && state.direction === 'buy' && takeProfit <= m.execution) return showToast('Le take profit d\'un achat doit être au-dessus du prix d\'entrée.');
+      if (takeProfit != null && state.direction === 'sell' && takeProfit >= m.execution) return showToast('Le take profit d\'une vente doit être sous le prix d\'entrée.');
+
+      const pos = {
+        id: state.nextPositionId++,
+        symbol: state.symbol,
+        side: state.direction,
+        lots: Number(m.lots.toFixed(2)),
+        leverage: m.leverage,
+        entryPrice: Number(m.execution.toFixed(2)),
+        stopLoss,
+        takeProfit,
+        marginUsed: m.margin,
+        openedAt: Date.now(),
+        floatingPnl: 0,
+      };
+      state.positions.push(pos);
+      state.pendingImpactBias += m.signedImpact * 0.85;
+      state.marketPrice = Math.max(50, state.marketPrice + m.signedImpact * 0.55);
+      state.currentCandle.close = state.marketPrice;
+      state.currentCandle.high = Math.max(state.currentCandle.high, state.marketPrice);
+      state.currentCandle.low = Math.min(state.currentCandle.low, state.marketPrice);
+      recalcAccount();
+      renderAll();
+      showToast(`Position ${pos.side === 'buy' ? 'long' : 'short'} ouverte à ${fmtPrice(pos.entryPrice)}.`);
+    }
+
+    function closePosition(id, reason = 'Position fermée', showMessage = true) {
+      const index = state.positions.findIndex(p => p.id === id);
+      if (index === -1) return;
+      const pos = state.positions[index];
+      const exitPrice = state.marketPrice + (pos.side === 'buy' ? -state.spread/2 : state.spread/2);
+      const pnl = pos.side === 'buy'
+        ? (exitPrice - pos.entryPrice) * CONTRACT_SIZE_OZ * pos.lots
+        : (pos.entryPrice - exitPrice) * CONTRACT_SIZE_OZ * pos.lots;
+      state.balance += pnl;
+      state.pendingImpactBias += (pos.side === 'buy' ? -1 : 1) * Math.abs(pos.entryPrice * pos.lots / 10000) * 0.04;
+      state.positions.splice(index, 1);
+      recalcAccount();
+      renderAll();
+      if (showMessage) showToast(`${reason} • Résultat ${fmtMoney(pnl)}`);
+    }
+
+    function closeAllPositions() {
+      if (!state.positions.length) return showToast('Aucune position ouverte.');
+      const ids = state.positions.map(p => p.id);
+      ids.forEach((id) => closePosition(id, 'Position fermée', false));
+      renderAll();
+      showToast('Toutes les positions ont été fermées.');
+    }
+
+    function depositFunds() {
+      const amount = Number(els.fundsInput.value || 0);
+      if (!(amount > 0)) return showToast('Montant de dépôt invalide.');
+      state.balance += amount;
+      recalcAccount();
+      renderAll();
+      showToast(`Dépôt de ${fmtMoney(amount)} effectué.`);
+    }
+
+    function withdrawFunds() {
+      const amount = Number(els.fundsInput.value || 0);
+      if (!(amount > 0)) return showToast('Montant de retrait invalide.');
+      if (amount > state.freeFunds) return showToast('Retrait impossible : fonds libres insuffisants.');
+      state.balance -= amount;
+      recalcAccount();
+      renderAll();
+      showToast(`Retrait de ${fmtMoney(amount)} effectué.`);
+    }
+
+    function resetSimulation() {
+      state.balance = INITIAL_BALANCE;
+      state.equity = INITIAL_BALANCE;
+      state.usedMargin = 0;
+      state.freeFunds = INITIAL_BALANCE;
+      state.floatingPnl = 0;
+      state.positions = [];
+      state.nextPositionId = 1;
+      state.marketPhase = 'range';
+      state.phaseTicksLeft = 25;
+      state.pendingImpactBias = 0;
+      buildInitialCandles();
+      recalcAccount();
+      renderAll();
+      showToast('Simulation réinitialisée.');
+    }
+
+    function renderPositions() {
+      if (!state.positions.length) {
+        els.positionList.innerHTML = '<div class="empty">Aucune position ouverte pour le moment.</div>';
+        return;
+      }
+      els.positionList.innerHTML = state.positions.map(pos => {
+        const pnlClass = pos.floatingPnl >= 0 ? 'pnl-pos' : 'pnl-neg';
+        const riskBlock = [
+          pos.stopLoss != null ? `SL ${Number(pos.stopLoss).toFixed(2)}` : 'SL —',
+          pos.takeProfit != null ? `TP ${Number(pos.takeProfit).toFixed(2)}` : 'TP —'
+        ].join(' • ');
+        return `
+          <div class="position-card">
+            <div class="position-main">
+              <div><span class="pill">${pos.side === 'buy' ? 'LONG' : 'SHORT'}</span> <strong style="margin-left:8px;">${pos.symbol}</strong></div>
+              <div style="margin-top:8px;">${pos.lots.toFixed(2)} lot • levier 1:${pos.leverage}</div>
+              <div class="muted" style="margin-top:4px;">Entrée ${pos.entryPrice.toFixed(2)} • ${riskBlock}</div>
+            </div>
+            <div>
+              <div class="muted">Marge</div>
+              <div><strong>${fmtMoney(pos.marginUsed)}</strong></div>
+            </div>
+            <div>
+              <div class="muted">Prix actuel</div>
+              <div><strong>${fmtPrice(state.marketPrice)}</strong></div>
+            </div>
+            <div>
+              <div class="muted">PnL temps réel</div>
+              <div class="${pnlClass}"><strong>${fmtMoney(pos.floatingPnl)}</strong></div>
+            </div>
+            <div>
+              <button class="secondary-btn" onclick="window.__closePosition(${pos.id})">FERMER POSITION</button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function renderAccount() {
+      els.topPortfolioValue.textContent = fmtMoney(state.equity).replace('$ ', '').replace('-$ ', '-');
+      els.balanceValue.textContent = fmtMoney(state.balance);
+      els.equityValue.textContent = fmtMoney(state.equity);
+      els.usedMarginValue.textContent = fmtMoney(state.usedMargin);
+      els.freeFundsValue.textContent = fmtMoney(state.freeFunds);
+      els.floatingPnlValue.textContent = fmtMoney(state.floatingPnl);
+      els.floatingPnlValue.className = 'stat-value ' + (state.floatingPnl >= 0 ? 'pnl-pos' : 'pnl-neg');
+      els.liquidityValue.textContent = fmtMoney(state.liquidityUSD).replace('.00', '').replace('$ ', '$ ');
+      els.spotPriceMain.textContent = fmtPrice(state.marketPrice);
+      els.orderPriceText.textContent = fmtPrice(state.marketPrice);
+      els.marketCapText.textContent = fmtCompact(state.displayedMarketCap);
+      els.volumeText.textContent = fmtCompact(state.displayedVolume);
+      els.spreadText.textContent = `Spread simulé : ${state.spread.toFixed(2)} $`;
+      els.marketStateLabel.textContent = `Marché : ${marketPhaseParams().label}`;
+      els.chartLeftLabel.textContent = `${marketPhaseParams().label}`;
+      els.chartRightLabel.textContent = `Prix temps réel ${state.marketPrice.toFixed(2)}`;
+    }
+
+    function renderChart() {
+      const width = els.chart.width;
+      const height = els.chart.height;
+      ctx.clearRect(0, 0, width, height);
+
+      const data = [...state.candles, state.currentCandle].slice(-MAX_VISIBLE_CANDLES);
+      const highs = data.map(c => c.high);
+      const lows = data.map(c => c.low);
+      const maxPrice = Math.max(...highs) + 2;
+      const minPrice = Math.min(...lows) - 2;
+      const range = Math.max(maxPrice - minPrice, 1);
+      const topPad = 20;
+      const bottomPad = 34;
+      const innerH = height - topPad - bottomPad;
+      const candleSpace = width / data.length;
+      const bodyWidth = Math.max(8, candleSpace * 0.48);
+
+      function yForPrice(price) {
+        const pct = (price - minPrice) / range;
+        return height - bottomPad - pct * innerH;
+      }
+
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+      ctx.fillStyle = '#444';
+      ctx.font = '12px Arial';
+      for (let i = 0; i < 5; i++) {
+        const p = minPrice + (range * i / 4);
+        const y = yForPrice(p);
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+        ctx.fillText(p.toFixed(2), width - 62, y - 4);
+      }
+
+      data.forEach((c, i) => {
+        const x = i * candleSpace + candleSpace / 2;
+        const yOpen = yForPrice(c.open);
+        const yClose = yForPrice(c.close);
+        const yHigh = yForPrice(c.high);
+        const yLow = yForPrice(c.low);
+        const bullish = c.close >= c.open;
+
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x, yHigh);
+        ctx.lineTo(x, yLow);
+        ctx.stroke();
+
+        const bodyTop = Math.min(yOpen, yClose);
+        const bodyHeight = Math.max(Math.abs(yClose - yOpen), 3);
+        ctx.beginPath();
+        ctx.rect(x - bodyWidth / 2, bodyTop, bodyWidth, bodyHeight);
+        ctx.fillStyle = bullish ? '#17a84b' : '#111';
+        ctx.fill();
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+
+      const liveY = yForPrice(state.marketPrice);
+      ctx.setLineDash([6, 6]);
+      ctx.strokeStyle = 'rgba(0,0,0,.6)';
+      ctx.beginPath();
+      ctx.moveTo(0, liveY);
+      ctx.lineTo(width, liveY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#111';
+      ctx.fillRect(width - 118, liveY - 14, 108, 24);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 13px Arial';
+      ctx.fillText(state.marketPrice.toFixed(2), width - 100, liveY + 3);
+
+      ctx.fillStyle = '#111';
+      ctx.font = 'bold 12px Arial';
+      data.slice(-8).forEach((c, idx) => {
+        const x = width - ((7 - idx) * candleSpace) - candleSpace / 2 - 18;
+        const t = new Date(c.time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        ctx.fillText(t, Math.max(x - 18, 6), height - 8);
+      });
+    }
+
+    function renderAll() {
+      updatePreview();
+      renderAccount();
+      renderPositions();
+      renderChart();
+    }
+
+    function tickFast() {
+      stepPrice();
+      applyPositionStops();
+      recalcAccount();
+      renderAll();
+    }
+
+    function tickCandle() {
+      closeCurrentCandleAndOpenNext();
+      renderAll();
+    }
+
+    function mountControls() {
+      els.leverageChips.innerHTML = LEVERAGES.map(
+        l => `<button class="lev-chip ${l === state.selectedLeverage ? 'active' : ''}" data-lev="${l}">1:${l}</button>`
+      ).join('');
+
+      els.leverageChips.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-lev]');
+        if (!btn) return;
+        state.selectedLeverage = Number(btn.dataset.lev);
+
+        [...els.leverageChips.querySelectorAll('.lev-chip')].forEach(ch => {
+          ch.classList.toggle('active', Number(ch.dataset.lev) === state.selectedLeverage);
+        });
+
+        updatePreview();
+      });
+
+      document.querySelectorAll('[data-direction]').forEach(btn => {
+        btn.addEventListener('click', () => setDirection(btn.dataset.direction));
+      });
+
+      els.buyBtn.addEventListener('click', () => setDirection('buy'));
+      els.sellBtn.addEventListener('click', () => setDirection('sell'));
+      els.lotsInput.addEventListener('input', updatePreview);
+      els.slInput.addEventListener('input', updatePreview);
+      els.tpInput.addEventListener('input', updatePreview);
+
+      if (els.maxLotBtn) {
+        els.maxLotBtn.addEventListener('click', () => {
+          els.lotsInput.value = getMaxLots().toFixed(2);
+          updatePreview();
+        });
+      }
+
+      els.openPositionBtn.addEventListener('click', openPosition);
+      els.closeAllBtn.addEventListener('click', closeAllPositions);
+      els.depositBtn.addEventListener('click', depositFunds);
+      els.withdrawBtn.addEventListener('click', withdrawFunds);
+      els.resetBtn.addEventListener('click', resetSimulation);
+    }
+
+    function setDirection(direction) {
+      state.direction = direction;
+      els.buyBtn.classList.toggle('active', direction === 'buy');
+      els.sellBtn.classList.toggle('active', direction === 'sell');
+      document.querySelectorAll('[data-direction]').forEach(btn => btn.classList.toggle('active', btn.dataset.direction === direction));
+      updatePreview();
+    }
+
+    function boot() {
+      buildInitialCandles();
+      mountControls();
+      updateClock();
+      recalcAccount();
+      renderAll();
+
+      setInterval(updateClock, 1000);
+      setInterval(tickFast, 350);
+      setInterval(tickCandle, CANDLE_INTERVAL_MS);
+
+      window.__closePosition = closePosition;
+    }
+
+    try {
+      boot();
+    } catch (err) {
+      console.error('Erreur au démarrage de la simulation :', err);
+    }
+  </script>
+</body>
+</html>
